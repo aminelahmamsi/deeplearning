@@ -1,6 +1,7 @@
 import torch
 try:
     import torch_directml
+    directml_loaded = True
 except ImportError:
     directml_loaded = False
 
