@@ -1,5 +1,6 @@
 import uuid
 import os
+import pandas as pd
 
 def get_or_create_unique_id(config_path="config.txt", ids_file="IDs.txt"):
     """
@@ -49,3 +50,36 @@ def get_or_create_unique_id(config_path="config.txt", ids_file="IDs.txt"):
             f.write(f"id={random_id}\n")
 
     return random_id
+
+def get_unique_run_id(csv_path="training_results.csv"):
+    """
+    Generate a unique run ID for a new training session.
+    Ensures the ID is not already present in the CSV file.
+    
+    Parameters:
+    -----------
+    csv_path : str
+        Path to the CSV file where previous runs are stored.
+    
+    Returns:
+    --------
+    str
+        A new unique run_id (UUID4)
+    """
+    # Load existing run IDs if the CSV exists
+    existing_ids = set()
+    if os.path.exists(csv_path):
+        try:
+            df = pd.read_csv(csv_path, usecols=["run_id"])
+            existing_ids = set(df["run_id"].astype(str))
+        except Exception:
+            # If column doesn't exist, assume no existing IDs
+            existing_ids = set()
+
+    # Generate a unique run ID
+    while True:
+        new_id = str(uuid.uuid4())
+        if new_id not in existing_ids:
+            break
+
+    return new_id
