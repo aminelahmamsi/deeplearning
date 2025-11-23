@@ -1,6 +1,6 @@
 import torch
 
-def evaluate(model, test_loader, device):
+def evaluate(model, test_loader, device, no_print=True):
     model.eval()
     
     TP = TN = FP = FN = 0
@@ -25,10 +25,20 @@ def evaluate(model, test_loader, device):
 
     test_acc = 100 * correct / total
 
-    print("TP:", TP)
-    print("TN:", TN)
-    print("FP:", FP)
-    print("FN:", FN)
-    print(f"Test Accuracy: {test_acc:.2f}%")
+    if not no_print:
+        print(
+            f"TP:{TP}, "
+            f"TN:{TN}, "
+            f"FP:{FP}, "
+            f"FN:{FN}, "
+            f"TP:{TP}, "
+            f"Test Accuracy: {test_acc:.2f}%"
+        )
 
-    return TP, TN, FP, FN, test_acc
+    return {
+            "TP": TN,
+            "TN": TN,
+            "FP": FP,
+            "FN": FN,
+            "test_acc": test_acc,
+        }
