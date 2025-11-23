@@ -21,21 +21,14 @@ def save_training_results_to_csv(results, save_path='training_results.csv'):
         Path to the saved CSV file
     """
     
-    # # Convert all tensors to floats
-    # train_loss = [float(loss.cpu()) if isinstance(loss, torch.Tensor) else float(loss)
-    #               for loss in results['train_losses']]
-    # train_acc = [float(acc.cpu()) if isinstance(acc, torch.Tensor) else float(acc)
-    #              for acc in results['train_accuracies']]
-    # val_loss = [float(loss.cpu()) if isinstance(loss, torch.Tensor) else float(loss)
-    #             for loss in results['val_losses']]
-    # val_acc = [float(acc.cpu()) if isinstance(acc, torch.Tensor) else float(acc)
-    #            for acc in results['val_accuracies']]
-    
     #might add confusion table later
 
     results['epoch'] = list(range(1, results['epochs'] + 1))
     # Create DataFrame
     df = pd.DataFrame(results)
+    
+    #rounds values:
+    df = df.round(4)
     
     # Check if file exists
     file_exists = os.path.isfile(save_path)
