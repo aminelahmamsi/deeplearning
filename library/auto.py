@@ -72,7 +72,7 @@ def automeasure(runs_per_measure=5, no_print=True):
             #saving the data: storing it in the csv
             save_training_results_to_csv(result_init | results_training | results_evaluation)
             # Save the Model
-            torch.save(model.state_dict(), "./models/brain_tumor.pth")
-            print(f"run {current_run}/{num_combinations} completed")
+            torch.save(model.state_dict(), f"./models/model_{results_training["run_id"]}.pth")
+            print(f"run {current_run}/{num_combinations} completed, id:{results_training["run_id"]}")
     
     print(f"all {num_combinations} runs have been completed, this program has finished successfully!")
