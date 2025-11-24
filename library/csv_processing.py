@@ -46,3 +46,22 @@ def save_training_results_to_csv(results, save_path='training_results.csv'):
 # Example usage:
 # results = train_network_enhanced_weighted(...)
 # save_training_results_to_csv(results, "ResNet18_CIFAR10")
+
+def process_results_csv():
+    # Load CSV
+    df = pd.read_csv("training_results.csv")
+
+    # Keep only the last epoch of each run_id
+    last_epochs = (
+        df.sort_values("epoch")
+        .groupby("run_id")
+        .tail(1)
+    )
+    
+    # Remove the now duplicate epoch column
+    last_epochs = last_epochs.drop(columns=["epoch"])
+
+    # Save the result
+    last_epochs.to_csv("cleaned_results.csv", index=False)
+
+    print("Successfully processed results!")
