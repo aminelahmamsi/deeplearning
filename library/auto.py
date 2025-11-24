@@ -8,7 +8,7 @@ from library.get_device import get_device
 from library.get_id import get_or_create_unique_id
 from library.training import train_model
 from library.evaluation import evaluate
-from library.save_results import save_training_results_to_csv
+from library.csv_processing import save_training_results_to_csv
 
 
 def automeasure(runs_per_measure=5, no_print=True):
