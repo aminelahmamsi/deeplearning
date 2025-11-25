@@ -1,77 +1,92 @@
 import pandas as pd
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import scipy.stats as stats
+import matplotlib.pyplot as plt
 
-def train_global_linear_model(
-                                target="test_acc"
-                              , features=["learning_rate", "batch_size", "dropout", "optimizer_type"], 
-                              csv_path="cleaned_results.csv"
-                              ):
+def run_full_glm_analysis(
+        csv_path,
+        response,
+        factors,
+        interactions=True
+    ):
     """
-    Train a global linear model on the given CSV.
+    Perform a full General Linear Model experiment analysis:
+    - Fit GLM
+    - Validate residuals (normality + homoscedasticity)
+    - Produce ANOVA table
+    - Plot residual diagnostics
 
-    Parameters
-    ----------
-    csv_path : str
-        Path to the CSV file.
-    target : str
-        Column name you want to predict.
-    features : list[str]
-        Columns used to predict the target.
+    Parameters:
+        csv_path (str): Path to CSV.
+        response (str): Dependent variable to analyze.
+        factors (list[str]): Independent variables.
+        interactions (bool): Include all 2nd-order interactions.
 
-    Returns
-    -------
-    model : sklearn Pipeline
-        The trained model.
-    feature_names : list[str]
-        The expanded list of feature names (after one-hot encoding).
-    coef : list[float]
-        Coefficients of the linear model.
-    intercept : float
-        Intercept of the linear model.
+    Returns:
+        model: fitted GLM model
+        anova_table: ANOVA significance table
     """
 
-    # Load data
     df = pd.read_csv(csv_path)
 
-    # Split X / y
-    X = df[features]
-    y = df[target]
+    # --- Build formula --------------------------------------------------------
+    if interactions:
+        # Example: train_losses + dropout + learning_rate
+        # → train_losses * dropout * learning_rate
+        formula = response + " ~ " + " * ".join(factors)
+    else:
+        formula = response + " ~ " + " + ".join(factors)
 
-    # Identify types
-    numeric_features = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
-    categorical_features = X.select_dtypes(include=["object"]).columns.tolist()
+    print("\n=== MODEL FORMULA ===")
+    print(formula)
 
-    # Preprocessing
-    preprocess = ColumnTransformer(
-        transformers=[
-            ("num", "passthrough", numeric_features),
-            ("cat", OneHotEncoder(), categorical_features)
-        ]
-    )
+    # --- Fit the model --------------------------------------------------------
+    model = smf.ols(formula=formula, data=df).fit()
 
-    # Build full pipeline
-    model = Pipeline(steps=[
-        ("preprocess", preprocess),
-        ("regressor", LinearRegression())
-    ])
+    print("\n=== MODEL SUMMARY ===")
+    print(model.summary())
 
-    # Train
-    model.fit(X, y)
+    # --- ANOVA table ----------------------------------------------------------
+    print("\n=== ANOVA TABLE (Factor Significance) ===")
+    anova_table = sm.stats.anova_lm(model, typ=2)
+    print(anova_table)
 
-    # Extract feature names
-    feature_names = numeric_features
+    # --- Residual diagnostics -------------------------------------------------
+    residuals = model.resid
+    fitted = model.fittedvalues
 
-    if categorical_features:
-        cat_names = model.named_steps["preprocess"] \
-                         .named_transformers_["cat"] \
-                         .get_feature_names_out(categorical_features)
-        feature_names = feature_names + list(cat_names)
+    # Normality test (Shapiro–Wilk)
+    shapiro_p = stats.shapiro(residuals)[1]
+    print("\nNormality of residuals (Shapiro–Wilk p-value):", shapiro_p)
+    if shapiro_p >= 0.05:
+        print("✓ Residuals are normal")
+    else:
+        print("✗ Residuals deviate from normality")
 
-    # Extract coefficients
-    coef = list(model.named_steps["regressor"].coef_)
-    intercept = model.named_steps["regressor"].intercept_
+    # Homoscedasticity test (Breusch–Pagan)
+    bp_p = sm.stats.diagnostic.het_breuschpagan(residuals, model.model.exog)[1]
+    print("Homoscedasticity (Breusch–Pagan p-value):", bp_p)
+    if bp_p >= 0.05:
+        print("✓ Variances are homogeneous")
+    else:
+        print("✗ Heteroscedasticity detected")
 
-    return model, feature_names, coef, intercept
+    # --- Diagnostic plots ------------------------------------------------------
+    fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+
+    # QQ-plot
+    sm.qqplot(residuals, line='45', ax=axs[0])
+    axs[0].set_title("Normal Probability Plot")
+
+    # Residuals vs Fitted
+    axs[1].scatter(fitted, residuals)
+    axs[1].axhline(0, color='red')
+    axs[1].set_xlabel("Fitted values")
+    axs[1].set_ylabel("Residuals")
+    axs[1].set_title("Residuals vs Fitted")
+
+    plt.tight_layout()
+    plt.show()
+
+    return model, anova_table
