@@ -8,6 +8,7 @@ def run_full_glm_analysis(
         csv_path,
         response,
         factors,
+        use_powers,
         interactions=True
     ):
     """
@@ -30,13 +31,26 @@ def run_full_glm_analysis(
 
     df = pd.read_csv(csv_path)
 
-    # --- Build formula --------------------------------------------------------
-    if interactions:
-        # Example: train_losses + dropout + learning_rate
-        # → train_losses * dropout * learning_rate
-        formula = response + " ~ " + " * ".join(factors)
+    numeric_factors = [f for f in factors if pd.api.types.is_numeric_dtype(df[f])]
+    categorical_factors = [f for f in factors if f not in numeric_factors]
+
+    if use_powers:
+        formula = (
+            response
+            + " ~ "
+            + " + ".join(categorical_factors + numeric_factors)
+            + " + "
+            + " + ".join([f"I({f}**2)" for f in numeric_factors])
+        )
     else:
-        formula = response + " ~ " + " + ".join(factors)
+        formula = (
+            response
+            + " ~ "
+            + " + ".join(categorical_factors + numeric_factors)
+        )
+
+
+
 
     print("\n=== MODEL FORMULA ===")
     print(formula)
