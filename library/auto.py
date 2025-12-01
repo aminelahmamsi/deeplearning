@@ -70,9 +70,11 @@ def automeasure(runs_per_measure=5, no_print=True):
             results_evaluation = evaluate(model, test_loader, device, no_print)
             
             #saving the data: storing it in the csv
-            save_training_results_to_csv(result_init | results_training | results_evaluation)
+            result_init.update(results_training)
+            result_init.update(results_evaluation)
+            save_training_results_to_csv(result_init)
             # Save the Model
             #torch.save(model.state_dict(), f"./models/model_{results_training["run_id"]}.pth")
-            print(f"run {current_run}/{num_combinations} completed, id:{results_training["run_id"]}")
+            print(f"run {current_run}/{num_combinations} completed, id:{results_training['run_id']}")
     
     print(f"all {num_combinations} runs have been completed, this program has finished successfully!")
