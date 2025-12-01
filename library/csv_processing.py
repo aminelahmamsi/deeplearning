@@ -3,6 +3,8 @@ import csv
 import pandas as pd
 import numpy as np
 import torch
+from scipy import stats
+from sklearn.preprocessing import MinMaxScaler
 
 def save_training_results_to_csv(results, save_path='training_results.csv'):
     """
@@ -49,7 +51,13 @@ def save_training_results_to_csv(results, save_path='training_results.csv'):
 
 def process_results_csv():
     # Load CSV
-    df = pd.read_csv("training_results.csv")
+    df = pd.read_csv(
+        "training_results.csv",
+        header=0,        # first row is column names
+        dtype=str,       # IMPORTANT: prevents type-alignment corruption
+        na_filter=True,  # normal NA handling
+        low_memory=False # safer column inference on large files
+        )
 
     # Keep only the last epoch of each run_id
     last_epochs = (
@@ -58,8 +66,19 @@ def process_results_csv():
         .tail(1)
     )
     
-    # Remove the now duplicate epoch column
-    last_epochs = last_epochs.drop(columns=["epoch"])
+    #normalize data:
+    scaler = MinMaxScaler()
+    last_epochs[["learning_rate", "dropout"]] = scaler.fit_transform(
+        last_epochs[["learning_rate", "dropout"]]
+    )
+
+    
+    last_epochs["test_acc"] = pd.to_numeric(last_epochs["test_acc"], errors="coerce")
+    
+    last_epochs["test_acc_bc"], lambda_bc = stats.boxcox(last_epochs["test_acc"])
+    
+    # Remove the now useless columns
+    last_epochs.drop(['epoch','computer_id'], axis=1, inplace=True)
 
     # Save the result
     last_epochs.to_csv("cleaned_results.csv", index=False)
