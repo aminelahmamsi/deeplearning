@@ -4,3 +4,6 @@ torchvision
 pillow
 numpy
 matplotlib
+pandas
+folium
+streamlit-folium
