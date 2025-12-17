@@ -13,3 +13,7 @@ docker build -t brain-tumor-app .
 3. Run the Container
 
 docker run -p 8501:8501 brain-tumor-app
+
+4. if you want test more pictures you can download the full dataset on this link:
+
+https://www.kaggle.com/datasets/akrashnoor/brain-tumor
